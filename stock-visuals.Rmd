@@ -1,0 +1,19 @@
+---
+title: "stock-visuals"
+author: "Rylan Murry"
+date: "8/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+### This is a text comment in the rmd file for github
+```
+
+```{r}
+
+
+```
