@@ -1,8 +1,8 @@
 ---
 title: "US Economic Data"
-author: "Rylan Murry"
-date: "8/12/2020"
-output: html_document
+output:
+  flexdashboard::flex_dashboard:
+    vertical_layout: fill
 ---
 
 ```{r setup, include=FALSE}
@@ -32,14 +32,25 @@ p_load(readxl,tidyverse,highcharter,readr,timetk,quantmod)
 ```{r,  Data Load}
 ### Just pulled S&P500 Historic Data from Yahoo for convenience
 sp500 <- read_csv('sp500.csv') %>%
-  mutate(Date = as.Date(Date,format = '%Y-%-%d')) #%>%
-  #as.xts(order.by = .$Date)
+  mutate(Date = as.Date(Date,format = '%Y-%-%d'))
+
+testSP <- sp500 %>% filter(Date > as.Date('2009-01-01','%Y-%m-%d'))
+test <- lm(Close ~ Date,testSP)
+r2 <- summary(test)
+r2 <- round(as.numeric(r2$r.squared)*100,2)
+testSP$fitted <- test$fitted.values
+
+testSP <- xts(testSP[-1],order.by = testSP$Date)
+
+
 ```
 
 # Stock Market Data and Trends
 
 ```{r}
 highchart(type = "stock") %>%
-  hc_add_series(sp500$Close,type = 'line')
-hchart(sp500,'line',hcaes(x = Date,y = Close))
+  hc_add_series(testSP$Close,type = 'line') %>%
+  hc_add_series(testSP$fitted,type = 'line') %>%
+  hc_title(text = paste('Linear Regression on S&P 500 - Accuracy of just time:',r2))
+#hchart(sp500,'line',hcaes(x = Date,y = Close))
 ```
