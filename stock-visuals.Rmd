@@ -1,11 +1,12 @@
 ---
-title: "stock-visuals"
+title: "US Economic Data"
 author: "Rylan Murry"
 date: "8/12/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+setwd('D:/GitHub/stock-market')
 knitr::opts_chunk$set(echo = TRUE, 
                       message = FALSE, 
                       warning = FALSE, 
@@ -25,14 +26,20 @@ if (!require(pacman)) {
   require(pacman)
 }
 
-p_load(readxl,tidyverse,highcharter)
+p_load(readxl,tidyverse,highcharter,readr,timetk,quantmod)
 ```
 
-```{r}
-### This is a text comment in the rmd file for github
+```{r,  Data Load}
+### Just pulled S&P500 Historic Data from Yahoo for convenience
+sp500 <- read_csv('sp500.csv') %>%
+  mutate(Date = as.Date(Date,format = '%Y-%-%d')) #%>%
+  #as.xts(order.by = .$Date)
 ```
 
+# Stock Market Data and Trends
+
 ```{r}
-
-
+highchart(type = "stock") %>%
+  hc_add_series(sp500$Close,type = 'line')
+hchart(sp500,'line',hcaes(x = Date,y = Close))
 ```
