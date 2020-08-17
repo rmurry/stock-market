@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
+knitr::opts_chunk$set(echo = FALSE, 
                       message = FALSE, 
                       warning = FALSE, 
                       fig.align = "center",
@@ -28,19 +28,30 @@ if (!require(pacman)) {
 p_load(flexdashboard,readxl,tidyverse,highcharter,readr,timetk,quantmod)
 ```
 
-```{r,  Data Load}
-SP500 <- getSymbols("^GSPC",auto.assign = F,from = "2009-01-20")
-SP500 <- data.frame(SP500,Date = index(SP500))
-lmSP <- lm(GSPC.Close ~ Date,SP500)
-results <- summary(lmSP)
-SP500$fitted <- lmSP$fitted.values
+```{r,  Function to Load Stock Market Data & LM}
+SymbolsGraph <- function(symb,startDate) {
+  temp <- getSymbols(symb,auto.assign = F,from = startDate)
+  
+  temp <- data.frame(temp,Date = index(temp)) %>%
+    select(Date,"Close" = contains('Close'))
+  lm <- lm(Close ~ Date,temp)
+  results <- summary(lm)
+  temp <- temp %>%
+    mutate(fitted = round(lm$fitted.values,2),
+           Close = round(Close,2))
+  
+  tempXTS <- xts(temp[,-1],order.by = temp$Date)
+  
+  highchart(type = "stock") %>%
+    hc_add_series(tempXTS$Close,type = 'line') %>%
+    hc_add_series(tempXTS$fitted,type = 'line') %>%
+    hc_title(text = paste(symb,'Linear Regression',sep = ' ')) %>%
+    hc_tooltip(pointFormat = 'Close: {point.Close}<br>Fitted Value: {point.fitted}')
+}
 ```
 
 # Stock Market Data and Trends
 
 ```{r}
-highchart(type = "stock") %>%
-  hc_add_series(SP500$GSPC.Close,type = 'line') %>%
-  hc_add_series(SP500$fitted,type = 'line') %>%
-  hc_title(text = paste('Linear Regression on S&P 500 - Accuracy of just time:',round(as.numeric(results$r.squared)*100,2)))
+SymbolsGraph('^GSPC','2009-01-20')
 ```
