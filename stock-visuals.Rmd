@@ -6,7 +6,6 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-setwd('D:/GitHub/stock-market')
 knitr::opts_chunk$set(echo = TRUE, 
                       message = FALSE, 
                       warning = FALSE, 
@@ -26,31 +25,22 @@ if (!require(pacman)) {
   require(pacman)
 }
 
-p_load(readxl,tidyverse,highcharter,readr,timetk,quantmod)
+p_load(flexdashboard,readxl,tidyverse,highcharter,readr,timetk,quantmod)
 ```
 
 ```{r,  Data Load}
-### Just pulled S&P500 Historic Data from Yahoo for convenience
-sp500 <- read_csv('sp500.csv') %>%
-  mutate(Date = as.Date(Date,format = '%Y-%-%d'))
-
-testSP <- sp500 %>% filter(Date > as.Date('2009-01-01','%Y-%m-%d'))
-test <- lm(Close ~ Date,testSP)
-r2 <- summary(test)
-r2 <- round(as.numeric(r2$r.squared)*100,2)
-testSP$fitted <- test$fitted.values
-
-testSP <- xts(testSP[-1],order.by = testSP$Date)
-
-
+SP500 <- getSymbols("^GSPC",auto.assign = F,from = "2009-01-20")
+SP500 <- data.frame(SP500,Date = index(SP500))
+lmSP <- lm(GSPC.Close ~ Date,SP500)
+results <- summary(lmSP)
+SP500$fitted <- lmSP$fitted.values
 ```
 
 # Stock Market Data and Trends
 
 ```{r}
 highchart(type = "stock") %>%
-  hc_add_series(testSP$Close,type = 'line') %>%
-  hc_add_series(testSP$fitted,type = 'line') %>%
-  hc_title(text = paste('Linear Regression on S&P 500 - Accuracy of just time:',r2))
-#hchart(sp500,'line',hcaes(x = Date,y = Close))
+  hc_add_series(SP500$GSPC.Close,type = 'line') %>%
+  hc_add_series(SP500$fitted,type = 'line') %>%
+  hc_title(text = paste('Linear Regression on S&P 500 - Accuracy of just time:',round(as.numeric(results$r.squared)*100,2)))
 ```
