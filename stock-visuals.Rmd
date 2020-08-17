@@ -25,7 +25,7 @@ if (!require(pacman)) {
   require(pacman)
 }
 
-p_load(flexdashboard,readxl,tidyverse,highcharter,readr,timetk,quantmod)
+p_load(flexdashboard,readxl,tidyverse,highcharter,readr,timetk,quantmod,caTools)
 ```
 
 ```{r,  Function to Load Stock Market Data & LM}
@@ -45,13 +45,67 @@ SymbolsGraph <- function(symb,startDate) {
   highchart(type = "stock") %>%
     hc_add_series(tempXTS$Close,type = 'line') %>%
     hc_add_series(tempXTS$fitted,type = 'line') %>%
-    hc_title(text = paste(symb,'Linear Regression',sep = ' ')) %>%
-    hc_tooltip(pointFormat = 'Close: {point.Close}<br>Fitted Value: {point.fitted}')
+    hc_title(text = paste(symb,'Linear Regression',sep = ' '))
 }
+```
+
+```{r, Record Highs}
+records <- getSymbols('^DJI',auto.assign = F,from = '2001-01-20')
+records <- data.frame(records,Date = index(records)) %>%
+  select(Date,"High" = contains('High')) %>%
+  mutate(President = case_when(Date < as.Date('2009-01-20') ~ 'George W. Bush',
+                               Date < as.Date('2017-01-20') ~ 'Barack Obama',
+                               TRUE ~ 'Donald Trump'))
+high <- records$High[1]
+for (i in 1:nrow(records)) {
+  if (records$High[i] > high) {
+    records$recordHigh[i] = 1
+    high <- records$High[i]
+  }
+  else {
+    records$recordHigh[i] = 0
+  }
+}
+
+recordHighs <- records %>%
+  group_by(President) %>%
+  summarise(recordHighs = sum(recordHigh),
+            days = n())
+
+
+```
+
+```{r, Avg Daily Change}
+daily <- getSymbols('^GSPC',auto.assign = F,from = '2001-01-20')
+daily <- data.frame(daily,'Date' = index(daily)) %>%
+  select(Date,'Open' = contains('Open'),'Close' = contains('Close')) %>%
+  mutate(DailyChange = Close - Open,
+         President = case_when(Date < as.Date('2009-01-20') ~ 'George W. Bush',
+                               Date < as.Date('2017-01-20') ~ 'Barack Obama',
+                               TRUE ~ 'Donald Trump')) %>%
+  group_by(President) %>%
+  summarise(AvgDailyChange = mean(DailyChange,na.rm = T))
+
 ```
 
 # Stock Market Data and Trends
 
+## {.tabset .tabset-fade}
+
+### S&P 500
+
 ```{r}
 SymbolsGraph('^GSPC','2009-01-20')
+```
+
+### Dow Jones
+
+```{r}
+SymbolsGraph('^DJI','2009-01-20')
+```
+
+### Nasdaq
+
+```{r}
+SymbolsGraph('^IXIC','2009-01-20')
 ```
