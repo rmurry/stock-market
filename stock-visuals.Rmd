@@ -2,6 +2,7 @@
 title: "US Economic Data"
 output:
   flexdashboard::flex_dashboard:
+    orientation: rows
     vertical_layout: fill
 ---
 
@@ -25,7 +26,7 @@ if (!require(pacman)) {
   require(pacman)
 }
 
-p_load(flexdashboard,readxl,tidyverse,highcharter,readr,timetk,quantmod,caTools)
+p_load(flexdashboard,readxl,tidyverse,highcharter,readr,timetk,quantmod,caTools,blscrapeR,rUnemploymentData)
 ```
 
 ```{r,  Function to Load Stock Market Data & LM}
@@ -47,6 +48,20 @@ SymbolsGraph <- function(symb,startDate) {
     hc_add_series(tempXTS$fitted,type = 'line') %>%
     hc_title(text = paste(symb,'Linear Regression',sep = ' '))
 }
+```
+
+```{r, Unemployment Data}
+## Data From https://data.oecd.org/
+unemp <- read.csv('unemployment.csv') %>%
+  filter(`ï..LOCATION` == 'USA' & FREQUENCY == 'M' & SUBJECT == 'TOT') %>%
+  separate(TIME,into = c('Year','Month'),sep = '-') %>%
+  mutate(Date = as.Date(paste(Year,Month,'01',sep = '-'),'%Y-%m-%d')) %>%
+  filter(Date > as.Date('2004-12-01'))
+unempYEAR <- read.csv('unemployment.csv') %>%
+  filter(`ï..LOCATION` == 'USA' & FREQUENCY == 'Y' & SUBJECT == 'TOT')
+unempReduction <- unemp %>%
+  filter(Date %in% c(as.Date('2009-07-01'),as.Date('2017-01-01'),as.Date('2020-02-01'))) %>%
+  mutate(reduction = abs(Value - lag(Value)))
 ```
 
 ```{r, Record Highs}
@@ -86,6 +101,38 @@ daily <- data.frame(daily,'Date' = index(daily)) %>%
   group_by(President) %>%
   summarise(AvgDailyChange = mean(DailyChange,na.rm = T))
 
+```
+
+# Unemployment/Jobs Data and Trends
+
+##
+
+###
+
+```{r}
+valueBox(value = paste(unempReduction$reduction[2],'% Unemployment Reduction',sep = ''),
+         caption = 'July 2009 to Jan 2017 (Post Great Recession)')
+```
+
+###
+
+```{r}
+valueBox(value = paste(unempReduction$reduction[3],'% Unemployment Reduction',sep = ''),
+         caption = 'Jan 2017 to February 2020')
+```
+
+##
+
+###
+
+```{r}
+hchart(unemp,'line',hcaes(x = Date,y = Value)) %>%
+  hc_add_theme(hc_theme_smpl()) %>%
+  hc_yAxis(min = 0,title = list(text = 'Unemployment Percent (%)')) %>%
+  hc_xAxis(plotBands = list(list(from = datetime_to_timestamp(as.Date('2007-12-01')),to = datetime_to_timestamp(as.Date('2009-06-01')), color = '#F0B58A',
+                                 label = list(text = 'Great Recession')),
+                            list(from = datetime_to_timestamp(as.Date('2020-03-01')),to = JS('Infinity'),color = '#F0B58A',
+                                 label = list(text = 'COVID-19'))))
 ```
 
 # Stock Market Data and Trends
